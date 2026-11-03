@@ -131,3 +131,20 @@ def test_expired_conversation_requires_explicit_empty_new_chat():
         app.button(key="new-conversation").click().run()
         assert app.session_state["messages"] == []
         assert not app.chat_input[0].disabled
+
+
+def test_unlimited_account_shows_label_and_can_start_fresh_chat():
+    from frontend_auth import validate_account
+
+    me = {**ME, "usage": {"unlimited": True, "remaining": None, "limit": None, "resets_at": None}}
+    validate_account(me)
+    with patch("frontend_auth.current_account", return_value=me):
+        app = AppTest.from_file(APP)
+        app.session_state["auth_token"] = "secret"
+        app.run()
+        assert not app.exception
+        assert not app.button(key="new-conversation").disabled
+        assert not app.chat_input[0].disabled
+        assert any("Unlimited" in value.value for value in app.markdown)
+        app.button(key="new-conversation").click().run()
+        assert not app.chat_input[0].disabled

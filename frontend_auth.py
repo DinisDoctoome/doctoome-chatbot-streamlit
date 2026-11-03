@@ -43,6 +43,10 @@ def validate_account(result):
     account, quota = result["account"], result["usage"]
     if not isinstance(account.get("id"), str) or not isinstance(account.get("email"), str):
         raise ValueError("Invalid account")
+    if quota.get("unlimited") is True:
+        if any(quota[key] is not None for key in ("remaining", "limit", "resets_at")):
+            raise ValueError("Invalid unlimited usage")
+        return
     if (
         type(quota["remaining"]) is not int
         or type(quota["limit"]) is not int
@@ -158,7 +162,15 @@ def usage_card():
             st.rerun()
         st.session_state.usage = None
     quota = st.session_state.get("usage")
-    value = f"{quota['remaining']} / {quota['limit']}" if quota else "—"
+    value = (
+        (
+            translate(language, "unlimited")
+            if quota.get("unlimited") is True
+            else f"{quota['remaining']} / {quota['limit']}"
+        )
+        if quota
+        else "—"
+    )
     caption = translate(language, "conversations_left" if quota else "usage_unavailable")
     st.markdown(
         f'<div style="border:1px solid #d9e2ec;border-radius:10px;padding:14px;text-align:center;max-width:180px;margin-left:auto"><div style="font-size:28px;font-weight:650">{escape(value)}</div><div style="font-size:13px">{escape(caption)}</div></div>',

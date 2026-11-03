@@ -252,7 +252,7 @@ def main() -> None:
         frontend_auth.clear_login()
         st.rerun()
     quota = st.session_state.get("usage")
-    can_start = quota is not None and quota["remaining"] > 0
+    can_start = quota is not None and (quota.get("unlimited") is True or quota["remaining"] > 0)
 
     if st.button(
         translate(language, "new_conversation"), key="new-conversation", disabled=not can_start
