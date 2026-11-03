@@ -69,6 +69,52 @@ def translate(language: str, key: str) -> str:
 
 def feedback_reason_options(language: str) -> dict[str, str]:
     return {
-        reason: translate(language, f"feedback_reason_{reason}")
-        for reason in FEEDBACK_REASON_KEYS
+        reason: translate(language, f"feedback_reason_{reason}") for reason in FEEDBACK_REASON_KEYS
     }
+
+
+TRANSLATIONS["en"].update(
+    {
+        "internal_login": "Internal pilot — sign in with your assigned account",
+        "email": "Email",
+        "password": "Password",
+        "sign_in": "Sign in",
+        "sign_out": "Sign out",
+        "invalid_login": "Email or password is incorrect.",
+        "login_limited": "Too many login attempts. Try again in 15 minutes.",
+        "access_unavailable": "Account and usage service unavailable. Please retry.",
+        "conversations_left": "Conversations left today",
+        "usage_unavailable": "Usage unavailable",
+        "quota_reset": "New conversations available at",
+        "retry": "Retry",
+        "retry_message": "Retry last message",
+        "quota_reached": "Daily limit reached. You can continue your current conversation.",
+        "conversation_expired": "This conversation expired. Start a new conversation to continue.",
+        "logout_failed": "Sign-out could not be confirmed. Please retry.",
+    }
+)
+TRANSLATIONS["fr"].update(
+    {
+        "internal_login": "Pilote interne — connectez-vous avec votre compte attribué",
+        "email": "E-mail",
+        "password": "Mot de passe",
+        "sign_in": "Se connecter",
+        "sign_out": "Se déconnecter",
+        "invalid_login": "E-mail ou mot de passe incorrect.",
+        "login_limited": "Trop de tentatives. Réessayez dans 15 minutes.",
+        "access_unavailable": "Service de compte et de quota indisponible. Réessayez.",
+        "conversations_left": "Conversations restantes aujourd’hui",
+        "usage_unavailable": "Quota indisponible",
+        "quota_reset": "Nouvelles conversations disponibles à",
+        "retry": "Réessayer",
+        "retry_message": "Réessayer le dernier message",
+        "quota_reached": "Limite quotidienne atteinte. Vous pouvez poursuivre la conversation en cours.",
+        "conversation_expired": "Cette conversation a expiré. Démarrez une nouvelle conversation.",
+        "logout_failed": "La déconnexion n’a pas pu être confirmée. Réessayez.",
+    }
+)
+
+TRANSLATIONS["en"]["continue_after_failure"] = (
+    "Continue conversation without replaying the failed message"
+)
+TRANSLATIONS["fr"]["continue_after_failure"] = "Poursuivre sans rejouer le message en échec"

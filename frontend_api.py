@@ -24,9 +24,17 @@ REQUIRED_FIELDS = {
 class ChatApiError(Exception):
     """A user-safe error raised when the chatbot API cannot be used."""
 
+    def __init__(self, message, status=None, detail=None):
+        super().__init__(message)
+        self.status, self.detail = status, detail
+
 
 class AnalyticsApiError(Exception):
     """A user-safe error raised when an analytics event cannot be accepted."""
+
+    def __init__(self, message, status=None):
+        super().__init__(message)
+        self.status = status
 
 
 def api_url() -> str:
@@ -56,9 +64,7 @@ def _validate_response(payload: Any) -> dict[str, Any]:
     for option in payload["options"]:
         if not isinstance(option, dict):
             raise ChatApiError("The chatbot service returned an unexpected response.")
-        if not isinstance(option.get("number"), int) or not isinstance(
-            option.get("label"), str
-        ):
+        if not isinstance(option.get("number"), int) or not isinstance(option.get("label"), str):
             raise ChatApiError("The chatbot service returned an unexpected response.")
         if not isinstance(option.get("offices", []), list) or not all(
             isinstance(office, str) for office in option.get("offices", [])
@@ -68,14 +74,14 @@ def _validate_response(payload: Any) -> dict[str, Any]:
     if payload["url"] is not None and not isinstance(payload["url"], str):
         raise ChatApiError("The chatbot service returned an unexpected response.")
 
-    if payload["conversation_id"] is not None and not isinstance(
-        payload["conversation_id"], str
-    ):
+    if payload["conversation_id"] is not None and not isinstance(payload["conversation_id"], str):
         raise ChatApiError("The chatbot service returned an unexpected response.")
 
     for optional_id in ("turn_id", "assistant_message_id"):
-        if optional_id in payload and payload[optional_id] is not None and not isinstance(
-            payload[optional_id], str
+        if (
+            optional_id in payload
+            and payload[optional_id] is not None
+            and not isinstance(payload[optional_id], str)
         ):
             raise ChatApiError("The chatbot service returned an unexpected response.")
 
@@ -87,9 +93,10 @@ def send_message(
     conversation_id: str | None,
     user_message_id: str | None = None,
     user_id: str | None = None,
+    token: str | None = None,
 ) -> dict[str, Any]:
     payload: dict[str, Any] = {"message": message}
-    if extended_chat_contract_enabled():
+    if token or extended_chat_contract_enabled():
         payload["conversation_id"] = conversation_id
         payload["user_message_id"] = user_message_id
         payload["user_id"] = user_id
@@ -98,8 +105,19 @@ def send_message(
 
     try:
         response = requests.post(
-            api_url(), json=payload, timeout=REQUEST_TIMEOUT_SECONDS
+            api_url(),
+            json=payload,
+            timeout=REQUEST_TIMEOUT_SECONDS,
+            **({"headers": {"Authorization": "Bearer " + token}} if token else {}),
         )
+        if response.status_code >= 400:
+            try:
+                detail = response.json().get("detail")
+            except (ValueError, AttributeError):
+                detail = None
+            raise ChatApiError(
+                "The request could not be completed. Please retry.", response.status_code, detail
+            )
         response.raise_for_status()
         return _validate_response(response.json())
     except (requests.RequestException, ValueError, ChatApiError) as exc:
@@ -108,15 +126,18 @@ def send_message(
         raise ChatApiError("I couldn't reach the chatbot service. Please try again.") from exc
 
 
-def _send_analytics_event(path: str, payload: dict[str, Any], id_field: str) -> None:
+def _send_analytics_event(path: str, payload: dict[str, Any], id_field: str, token=None) -> None:
     try:
         response = requests.post(
             analytics_api_base_url() + path,
             json=payload,
             timeout=REQUEST_TIMEOUT_SECONDS,
+            **({"headers": {"Authorization": "Bearer " + token}} if token else {}),
         )
         if response.status_code != 202:
-            raise AnalyticsApiError("The analytics service did not accept the event.")
+            raise AnalyticsApiError(
+                "The analytics service did not accept the event.", response.status_code
+            )
         result = response.json()
         if (
             not isinstance(result, dict)
@@ -130,13 +151,13 @@ def _send_analytics_event(path: str, payload: dict[str, Any], id_field: str) -> 
         raise AnalyticsApiError("The analytics service is unavailable. Please try again.") from exc
 
 
-def send_rating(payload: dict[str, Any]) -> None:
-    _send_analytics_event("/analytics/ratings", payload, "rating_event_id")
+def send_rating(payload: dict[str, Any], token=None) -> None:
+    _send_analytics_event("/analytics/ratings", payload, "rating_event_id", token)
 
 
-def send_feedback(payload: dict[str, Any]) -> None:
-    _send_analytics_event("/analytics/feedback", payload, "feedback_id")
+def send_feedback(payload: dict[str, Any], token=None) -> None:
+    _send_analytics_event("/analytics/feedback", payload, "feedback_id", token)
 
 
-def send_suggestion(payload: dict[str, Any]) -> None:
-    _send_analytics_event("/analytics/suggestions", payload, "suggestion_id")
+def send_suggestion(payload: dict[str, Any], token=None) -> None:
+    _send_analytics_event("/analytics/suggestions", payload, "suggestion_id", token)

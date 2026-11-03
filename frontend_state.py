@@ -16,6 +16,10 @@ def new_event_id() -> str:
 
 
 def initialize_state(state: State) -> None:
+    state.setdefault("conversation_expired", False)
+    state.setdefault("auth_token", None)
+    state.setdefault("usage", None)
+    state.setdefault("pending_message", None)
     state.setdefault("user_id", None)
     state.setdefault("ui_language", "en")
     state.setdefault("conversation_id", None)
@@ -28,6 +32,8 @@ def initialize_state(state: State) -> None:
 
 
 def reset_conversation(state: State) -> None:
+    state["conversation_expired"] = False
+    state["pending_message"] = None
     state["conversation_id"] = None
     state["messages"] = []
     state["pending_options"] = []
@@ -198,9 +204,8 @@ def submit_suggestion_event(
         None,
     )
     suggestion_state = state["suggestion_ui_state"]
-    if (
-        suggestion_state.get("pending_text") == suggestion_text
-        and suggestion_state.get("pending_suggestion_id")
+    if suggestion_state.get("pending_text") == suggestion_text and suggestion_state.get(
+        "pending_suggestion_id"
     ):
         suggestion_id = suggestion_state["pending_suggestion_id"]
     else:

@@ -87,3 +87,23 @@ python -m pytest -q -p no:cacheprovider
 ruff check .
 python -m compileall -q frontend_api.py frontend_state.py localization.py streamlit_app.py tests
 ```
+
+## Internal pilot login
+
+The updated frontend requires an administrator-provisioned email/password account.
+There is no public signup or forced password change. The account email and sign-out
+control appear in the sidebar, and a small upper-right card shows the number of
+new conversations left today. Each person can start five per Paris calendar day;
+follow-up messages do not consume another allowance. The counter refreshes every
+30 seconds and on interaction. An active conversation remains usable at zero.
+
+Authentication endpoints are resolved from `DOCTOOME_CHAT_API_URL` by removing
+its `/chat` suffix. Tokens stay in Streamlit server-side session state. All chat
+and feedback requests carry the token. The extended chat contract is always sent
+for signed-in users, superseding the earlier rollout flag instructions above.
+The configured analytics base must target the same authenticated backend.
+
+Deploy with the corresponding internal-pilot backend revision and configured
+DynamoDB access table. Missing/unavailable authentication never reveals the chat
+interface. Refreshing can require signing in again; it cannot reset daily usage.
+Network retries reuse the original message ID to avoid consuming another slot.
