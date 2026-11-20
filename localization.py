@@ -87,6 +87,8 @@ TRANSLATIONS["en"].update(
         "unlimited": "Unlimited",
         "usage_unavailable": "Usage unavailable",
         "quota_reset": "New conversations available at",
+        "chat_retry": "The chatbot couldn't complete this request. Please try again.",
+        "turn_pending": "The reply is not available yet. Please wait before retrying.",
         "retry": "Retry",
         "retry_message": "Retry last message",
         "quota_reached": "Daily limit reached. You can continue your current conversation.",
@@ -108,6 +110,8 @@ TRANSLATIONS["fr"].update(
         "unlimited": "Illimité",
         "usage_unavailable": "Quota indisponible",
         "quota_reset": "Nouvelles conversations disponibles à",
+        "chat_retry": "Le chatbot n’a pas pu terminer cette recherche. Veuillez réessayer.",
+        "turn_pending": "La réponse n’est pas encore disponible. Veuillez patienter avant de réessayer.",
         "retry": "Réessayer",
         "retry_message": "Réessayer le dernier message",
         "quota_reached": "Limite quotidienne atteinte. Vous pouvez poursuivre la conversation en cours.",
@@ -120,3 +124,10 @@ TRANSLATIONS["en"]["continue_after_failure"] = (
     "Continue conversation without replaying the failed message"
 )
 TRANSLATIONS["fr"]["continue_after_failure"] = "Poursuivre sans rejouer le message en échec"
+
+TRANSLATIONS["en"]["turn_unavailable"] = (
+    "This reply is unavailable. You can continue this conversation with a new message."
+)
+TRANSLATIONS["fr"]["turn_unavailable"] = (
+    "Cette réponse est indisponible. Vous pouvez poursuivre cette conversation avec un nouveau message."
+)

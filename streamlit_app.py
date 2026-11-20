@@ -80,11 +80,24 @@ def submit_message(message: str, display_message: str | None = None) -> None:
             if exc.status == 429
             else translate(language, "conversation_expired")
             if exc.status == 410
-            else str(exc)
+            else translate(language, "turn_unavailable")
+            if pending.get("can_recover")
+            else translate(language, "turn_pending")
+            if exc.status == 409 and isinstance(exc.detail, dict)
+            and exc.detail.get("code") == "turn_processing_or_response_unavailable"
+            else translate(language, "chat_retry")
         )
-        st.session_state.messages.append({"role": "error", "content": text})
+        notice = {"role": "error", "content": text, "user_message_id": pending["user_message_id"]}
+        messages = st.session_state.messages
+        if messages and messages[-1].get("role") == "error" and messages[-1].get("user_message_id") == pending["user_message_id"]:
+            messages[-1] = notice
+        else:
+            messages.append(notice)
         return
     st.session_state.pending_message = None
+    messages = st.session_state.messages
+    if messages and messages[-1].get("role") == "error" and messages[-1].get("user_message_id") == pending["user_message_id"]:
+        messages.pop()
     if response.get("usage"):
         st.session_state.usage = response["usage"]
     append_assistant_response(st.session_state, response)

@@ -148,3 +148,65 @@ def test_unlimited_account_shows_label_and_can_start_fresh_chat():
         assert any("Unlimited" in value.value for value in app.markdown)
         app.button(key="new-conversation").click().run()
         assert not app.chat_input[0].disabled
+
+
+def test_repeated_failure_updates_one_localized_notice_then_clears_on_success():
+    from frontend_api import ChatApiError
+
+    with (
+        patch("frontend_auth.current_account", return_value=ME),
+        patch("frontend_api.send_message", side_effect=[
+            ChatApiError("Generic", 503),
+            ChatApiError("Generic", 409, {"code": "turn_processing_or_response_unavailable", "retry_after": 10}),
+            valid_response(usage=ME["usage"]),
+        ]) as send,
+    ):
+        app = AppTest.from_file(APP)
+        app.session_state["auth_token"] = "secret"
+        app.session_state["ui_language"] = "fr"
+        app.run()
+        app.chat_input[0].set_value("Bonjour").run()
+        assert len(app.error) == 1 and app.error[0].value != "Generic"
+        app.button(key="retry-message").click().run()
+        assert len(app.error) == 1 and "patient" in app.error[0].value.lower()
+        app.button(key="retry-message").click().run()
+        assert not app.error and send.call_args_list[0] == send.call_args_list[2]
+
+
+def test_network_failure_is_localized_and_recoverable_failure_can_continue():
+    from frontend_api import ChatApiError
+    with (
+        patch("frontend_auth.current_account", return_value=ME),
+        patch("frontend_api.send_message", side_effect=[
+            ChatApiError("English transport failure"),
+            ChatApiError("Failure", 503, {"code": "turn_failed_recoverable", "conversation_id": "saved", "retry_after": 0}),
+        ]),
+    ):
+        app = AppTest.from_file(APP)
+        app.session_state["auth_token"] = "secret"
+        app.session_state["ui_language"] = "fr"
+        app.run()
+        app.chat_input[0].set_value("Bonjour").run()
+        assert len(app.error) == 1 and "English" not in app.error[0].value
+        app.button(key="retry-message").click().run()
+        assert len(app.error) == 1 and "poursuivre" in app.error[0].value.lower()
+        app.button(key="recover-message").click().run()
+        assert app.session_state["conversation_id"] == "saved"
+        assert not app.chat_input[0].disabled
+
+
+def test_expired_pending_notice_offers_continuation_instead_of_waiting():
+    from frontend_api import ChatApiError
+    with (
+        patch("frontend_auth.current_account", return_value=ME),
+        patch("frontend_api.send_message", side_effect=ChatApiError("Failure", 409, {
+            "code": "turn_processing_or_response_unavailable", "conversation_id": "saved", "retry_after": 0,
+        })),
+    ):
+        app = AppTest.from_file(APP)
+        app.session_state["auth_token"] = "secret"
+        app.session_state["ui_language"] = "fr"
+        app.run()
+        app.chat_input[0].set_value("Bonjour").run()
+        assert "poursuivre" in app.error[0].value.lower()
+        assert "patient" not in app.error[0].value.lower()

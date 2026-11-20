@@ -222,3 +222,10 @@ def test_analytics_client_rejects_non_202_response(mock_post):
                 "rating": "up",
             }
         )
+
+
+@patch("frontend_api.requests.post")
+def test_chat_waits_for_parser_and_bounded_search_budget(mock_post):
+    mock_post.return_value = response_with(valid_response())
+    send_message("Paris", "abc123")
+    assert mock_post.call_args.kwargs["timeout"] == 90

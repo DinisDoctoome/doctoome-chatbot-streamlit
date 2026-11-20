@@ -9,6 +9,8 @@ import requests
 DEFAULT_API_URL = "https://wp3xsfphbp.eu-west-3.awsapprunner.com/chat"
 DEFAULT_API_BASE_URL = "https://wp3xsfphbp.eu-west-3.awsapprunner.com"
 REQUEST_TIMEOUT_SECONDS = 30
+# Parser (30s), bounded catalogue work, and durable state writes.
+CHAT_TIMEOUT_SECONDS = 90
 REQUIRED_FIELDS = {
     "answer",
     "needs_followup",
@@ -107,7 +109,7 @@ def send_message(
         response = requests.post(
             api_url(),
             json=payload,
-            timeout=REQUEST_TIMEOUT_SECONDS,
+            timeout=CHAT_TIMEOUT_SECONDS,
             **({"headers": {"Authorization": "Bearer " + token}} if token else {}),
         )
         if response.status_code >= 400:
